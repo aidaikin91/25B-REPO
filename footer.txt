@@ -1,0 +1,5 @@
+footer content
+footer size
+footer color 
+footer font size
+footer image
