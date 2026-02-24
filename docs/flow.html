@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memo App – User Flow</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue: #1976D2;
+  --blue-light: #E3F2FD;
+  --blue-mid: #BBDEFB;
+  --teal: #00897B;
+  --teal-light: #E0F2F1;
+  --text: #212121;
+  --muted: #757575;
+  --border: #E0E0E0;
+  --white: #ffffff;
+  --bg: #F5F7FA;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Roboto', sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+h1 { text-align:center; font-size:28px; font-weight:700; color:var(--blue); margin-bottom:6px; }
+.sub { text-align:center; font-size:13px; color:var(--muted); margin-bottom:32px; }
+
+/* TABS */
+.tabs { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:36px; }
+.tab {
+  padding:9px 20px; border-radius:24px; border:1.5px solid var(--border);
+  background:var(--white); font-family:'Roboto',sans-serif; font-size:13px;
+  font-weight:500; color:var(--muted); cursor:pointer; transition:all .2s;
+}
+.tab:hover { border-color:var(--blue); color:var(--blue); }
+.tab.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+
+/* FLOW */
+.flow { display:none; max-width:800px; margin:0 auto; }
+.flow.active { display:block; }
+
+/* COLUMN HEADERS */
+.col-headers { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+.col-h { text-align:center; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:10px; border-radius:8px; }
+.col-h.user { background:var(--blue-light); color:var(--blue); }
+.col-h.hood { background:var(--teal-light); color:var(--teal); }
+
+/* STEP */
+.step { display:grid; grid-template-columns:1fr 32px 1fr; align-items:start; gap:0; margin-bottom:12px; }
+
+.card {
+  border-radius:10px; padding:14px 16px; background:var(--white);
+  border:1.5px solid var(--border); font-size:14px; line-height:1.6; color:var(--text);
+}
+.card.user { border-left:4px solid var(--blue); }
+.card.hood { border-left:4px solid var(--teal); }
+
+.card-icon { font-size:18px; margin-bottom:6px; display:block; }
+.card-who { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-bottom:4px; }
+.card-who.u { color:var(--blue); }
+.card-who.h { color:var(--teal); }
+.card strong { font-weight:600; }
+
+/* TECH DETAILS toggle */
+.tech-toggle {
+  display:flex; align-items:center; gap:5px;
+  margin-top:10px; padding-top:10px; border-top:1px solid var(--border);
+  font-size:11px; color:var(--teal); font-weight:500;
+  cursor:pointer; user-select:none;
+}
+.tech-toggle:hover { opacity:.75; }
+.toggle-arrow { font-size:9px; transition:transform .2s; display:inline-block; }
+.tech-toggle.open .toggle-arrow { transform:rotate(180deg); }
+
+.tech-body {
+  display:none; margin-top:8px;
+  background:#F1F8F7; border-radius:6px; padding:10px 12px;
+}
+.tech-body.show { display:block; }
+
+.tech-item {
+  display:flex; align-items:baseline; gap:6px;
+  font-size:11px; color:#37474F; margin-bottom:5px; line-height:1.5;
+}
+.tech-item:last-child { margin-bottom:0; }
+.tech-dot { width:5px; height:5px; border-radius:50%; background:var(--teal); flex-shrink:0; margin-top:5px; }
+.tech-code {
+  font-family:'Roboto Mono', monospace; font-size:10px;
+  background:#E0F2F1; color:var(--teal); padding:1px 5px; border-radius:3px;
+}
+
+/* ARROW */
+.mid { display:flex; flex-direction:column; align-items:center; justify-content:center; padding-top:16px; gap:2px; }
+.arr-line { width:1.5px; height:16px; background:var(--border); }
+.arr-head { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:7px solid var(--border); }
+
+/* CONNECTOR */
+.connector { display:grid; grid-template-columns:1fr 32px 1fr; height:20px; margin-bottom:4px; }
+.conn-left, .conn-right { display:flex; justify-content:center; }
+.conn-line { width:1.5px; background:#E3F2FD; }
+.conn-line.teal { background:#E0F2F1; }
+
+/* RESULT */
+.result {
+  text-align:center; margin-top:20px; padding:12px 20px; border-radius:10px;
+  font-size:14px; font-weight:500; background:var(--blue-light);
+  color:var(--blue); border:1.5px solid var(--blue-mid);
+}
+.result.teal { background:var(--teal-light); color:var(--teal); border-color:#80CBC4; }
+</style>
+</head>
+<body>
+
+<h1>Memo App</h1>
+<p class="sub">What the user does &nbsp;·&nbsp; What happens under the hood</p>
+
+<div class="tabs">
+  <div class="tab active" data-s="visit"  onclick="show('visit')">🌐 Visit App</div>
+  <div class="tab" data-s="signup" onclick="show('signup')">📝 Create Account</div>
+  <div class="tab" data-s="login"  onclick="show('login')">🔐 Log In</div>
+  <div class="tab" data-s="create" onclick="show('create')">✏️ Create Memo</div>
+  <div class="tab" data-s="view"   onclick="show('view')">📋 View Memos</div>
+</div>
+
+
+<!-- ── VISIT ── -->
+<div class="flow active" id="f-visit">
+  <div class="col-headers">
+    <div class="col-h user">👤 &nbsp; User</div>
+    <div class="col-h hood">⚙️ &nbsp; Under the Hood</div>
+  </div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">🌐</span>
+      <div class="card-who u">User</div>
+      Opens <strong>memo.312ubuntu.com</strong> in browser
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">🔍</span>
+      <div class="card-who h">Route 53</div>
+      Resolves the domain to a CloudFront address
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div>DNS query returns CloudFront distribution URL</div>
+        <div class="tech-item"><div class="tech-dot"></div>Configured with <span class="tech-code">A record → alias</span> to CloudFront</div>
+        <div class="tech-item"><div class="tech-dot"></div>ACM certificate attached — HTTPS enforced</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="conn-left"><div class="conn-line"></div></div><div></div><div class="conn-right"><div class="conn-line teal"></div></div></div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">⏳</span>
+      <div class="card-who u">User</div>
+      Waiting for the page to load
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">🚀</span>
+      <div class="card-who h">CloudFront</div>
+      Delivers app files from the nearest server worldwide
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div>Edge cache checked first — if cached, S3 is never called</div>
+        <div class="tech-item"><div class="tech-dot"></div>React build ~200KB: <span class="tech-code">index.html</span> + <span class="tech-code">main.js</span> + <span class="tech-code">CSS</span></div>
+        <div class="tech-item"><div class="tech-dot"></div>User in Kazakhstan gets files from nearest AWS edge location</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="conn-left"><div class="conn-line"></div></div><div></div><div class="conn-right"><div class="conn-line teal"></div></div></div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">✅</span>
+      <div class="card-who u">User</div>
+      Sees the Memo app — ready to use
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">⚛️</span>
+      <div class="card-who h">React App</div>
+      Loads and runs in the browser — no server running
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div>Files served from S3 — pure static hosting</div>
+        <div class="tech-item"><div class="tech-dot"></div>Built with <span class="tech-code">Vite</span> — optimized bundle</div>
+        <div class="tech-item"><div class="tech-dot"></div>No EC2, no server — costs ~$0 when nobody visits</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result">✓ App loaded in ~200ms &nbsp;·&nbsp; No server was running until you opened it</div>
+</div>
+
+
+<!-- ── SIGN UP ── -->
+<div class="flow" id="f-signup">
+  <div class="col-headers">
+    <div class="col-h user">👤 &nbsp; User</div>
+    <div class="col-h hood">⚙️ &nbsp; Under the Hood</div>
+  </div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">📝</span>
+      <div class="card-who u">User</div>
+      Clicks <strong>Create Account</strong> and fills in email + password
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">📡</span>
+      <div class="card-who h">React → Cognito</div>
+      Sends details to Amazon Cognito User Pool
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div>Cognito hashes the password — you never store it yourself</div>
+        <div class="tech-item"><div class="tech-dot"></div>Uses <span class="tech-code">SRP</span> auth protocol — password never sent in plain text</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="conn-left"><div class="conn-line"></div></div><div></div><div class="conn-right"><div class="conn-line teal"></div></div></div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">📧</span>
+      <div class="card-who u">User</div>
+      Gets a verification email and clicks the link
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">🔐</span>
+      <div class="card-who h">Cognito</div>
+      Creates the account and confirms the email
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div>Verification email sent via <span class="tech-code">Amazon SES</span></div>
+        <div class="tech-item"><div class="tech-dot"></div>Account stays <span class="tech-code">UNCONFIRMED</span> until email verified</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="conn-left"><div class="conn-line"></div></div><div></div><div class="conn-right"><div class="conn-line teal"></div></div></div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">✅</span>
+      <div class="card-who u">User</div>
+      Account is ready — can now log in
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">🎫</span>
+      <div class="card-who h">Cognito</div>
+      User stored in User Pool — no database setup needed
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div>Cognito manages all user storage — no DynamoDB users table needed</div>
+        <div class="tech-item"><div class="tech-dot"></div>Scales to millions of users automatically</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result teal">✓ Account created &nbsp;·&nbsp; Cognito handles all security and storage</div>
+</div>
+
+
+<!-- ── LOGIN ── -->
+<div class="flow" id="f-login">
+  <div class="col-headers">
+    <div class="col-h user">👤 &nbsp; User</div>
+    <div class="col-h hood">⚙️ &nbsp; Under the Hood</div>
+  </div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">🔐</span>
+      <div class="card-who u">User</div>
+      Enters email + password, clicks <strong>Sign In</strong>
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">📡</span>
+      <div class="card-who h">React → Cognito</div>
+      Sends credentials to Cognito for verification
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div>Cognito returns 3 tokens: <span class="tech-code">ID token</span>, <span class="tech-code">Access token</span>, <span class="tech-code">Refresh token</span></div>
+        <div class="tech-item"><div class="tech-dot"></div>Access token valid for <span class="tech-code">1 hour</span></div>
+        <div class="tech-item"><div class="tech-dot"></div>Refresh token valid for <span class="tech-code">30 days</span> — auto re-login</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="conn-left"><div class="conn-line"></div></div><div></div><div class="conn-right"><div class="conn-line teal"></div></div></div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">⏳</span>
+      <div class="card-who u">User</div>
+      Waiting...
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">✅</span>
+      <div class="card-who h">Cognito</div>
+      Verifies credentials — issues a JWT token stored in browser
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div>JWT contains <span class="tech-code">userId</span>, <span class="tech-code">email</span>, <span class="tech-code">expiry</span> — signed by Cognito</div>
+        <div class="tech-item"><div class="tech-dot"></div>Token stored in browser memory — not in localStorage for security</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="conn-left"><div class="conn-line"></div></div><div></div><div class="conn-right"><div class="conn-line teal"></div></div></div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">✅</span>
+      <div class="card-who u">User</div>
+      Sees their memo dashboard
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">🎫</span>
+      <div class="card-who h">JWT Token</div>
+      Attached to every API request automatically
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div>Sent as <span class="tech-code">Authorization: Bearer &lt;token&gt;</span> header</div>
+        <div class="tech-item"><div class="tech-dot"></div>API Gateway verifies it before forwarding to Lambda</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result">✓ Logged in &nbsp;·&nbsp; JWT token valid for 1 hour</div>
+</div>
+
+
+<!-- ── CREATE ── -->
+<div class="flow" id="f-create">
+  <div class="col-headers">
+    <div class="col-h user">👤 &nbsp; User</div>
+    <div class="col-h hood">⚙️ &nbsp; Under the Hood</div>
+  </div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">✏️</span>
+      <div class="card-who u">User</div>
+      Types a memo title + content, clicks <strong>Add a New Memo</strong>
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">📡</span>
+      <div class="card-who h">React → API Gateway</div>
+      Sends the memo to the backend with JWT token
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div><span class="tech-code">POST /memos</span> with JSON body + JWT header</div>
+        <div class="tech-item"><div class="tech-dot"></div>API Gateway validates JWT via Cognito Authorizer before Lambda</div>
+        <div class="tech-item"><div class="tech-dot"></div>Private route — unauthenticated requests get <span class="tech-code">401 Unauthorized</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="conn-left"><div class="conn-line"></div></div><div></div><div class="conn-right"><div class="conn-line teal"></div></div></div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">⏳</span>
+      <div class="card-who u">User</div>
+      Waiting...
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">⚡</span>
+      <div class="card-who h">Lambda</div>
+      Wakes up on demand and processes the request
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div>Cold start ~200ms if Lambda hasn't run recently</div>
+        <div class="tech-item"><div class="tech-dot"></div>Runs Node.js Express handler inside a Docker container from ECR</div>
+        <div class="tech-item"><div class="tech-dot"></div>No server was idle waiting — Lambda only runs when called</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="conn-left"><div class="conn-line"></div></div><div></div><div class="conn-right"><div class="conn-line teal"></div></div></div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">✅</span>
+      <div class="card-who u">User</div>
+      Sees the new memo appear in the list
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">💾</span>
+      <div class="card-who h">DynamoDB</div>
+      Saves the memo — returns confirmation to React
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div>Stored with <span class="tech-code">userId + timestamp</span> as the key</div>
+        <div class="tech-item"><div class="tech-dot"></div>Each user can only access their own memos</div>
+        <div class="tech-item"><div class="tech-dot"></div>Returns <span class="tech-code">201 Created</span> → React updates the list</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result teal">✓ Memo saved &nbsp;·&nbsp; Lambda ran for ~50ms then shut down automatically</div>
+</div>
+
+
+<!-- ── VIEW ── -->
+<div class="flow" id="f-view">
+  <div class="col-headers">
+    <div class="col-h user">👤 &nbsp; User</div>
+    <div class="col-h hood">⚙️ &nbsp; Under the Hood</div>
+  </div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">📋</span>
+      <div class="card-who u">User</div>
+      Opens the app — memo list loads automatically
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">📡</span>
+      <div class="card-who h">React → API Gateway</div>
+      Requests all memos for this user with JWT token
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div><span class="tech-code">GET /memos</span> + <span class="tech-code">Authorization: Bearer &lt;JWT&gt;</span></div>
+        <div class="tech-item"><div class="tech-dot"></div>API Gateway checks JWT before allowing the request through</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="conn-left"><div class="conn-line"></div></div><div></div><div class="conn-right"><div class="conn-line teal"></div></div></div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">⏳</span>
+      <div class="card-who u">User</div>
+      Waiting...
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">⚡</span>
+      <div class="card-who h">Lambda → DynamoDB</div>
+      Fetches only this user's memos from the database
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div>DynamoDB <span class="tech-code">query</span> by <span class="tech-code">userId</span> — only returns that user's data</div>
+        <div class="tech-item"><div class="tech-dot"></div>Lambda runs ~50ms then shuts down — pay only for what you use</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="conn-left"><div class="conn-line"></div></div><div></div><div class="conn-right"><div class="conn-line teal"></div></div></div>
+
+  <div class="step">
+    <div class="card user">
+      <span class="card-icon">✅</span>
+      <div class="card-who u">User</div>
+      Sees all their memos displayed as cards
+    </div>
+    <div class="mid"><div class="arr-line"></div><div class="arr-head"></div></div>
+    <div class="card hood">
+      <span class="card-icon">📦</span>
+      <div class="card-who h">React</div>
+      Receives the list and renders each memo as a card
+      <div class="tech-toggle" onclick="tog(this)"><span class="toggle-arrow">▾</span> Show details</div>
+      <div class="tech-body">
+        <div class="tech-item"><div class="tech-dot"></div>Response is a JSON array — React maps it to UI cards</div>
+        <div class="tech-item"><div class="tech-dot"></div>Returns <span class="tech-code">200 OK</span> with memo list</div>
+        <div class="tech-item"><div class="tech-dot"></div>Each user only sees their own data — isolated by userId</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result">✓ Memos loaded &nbsp;·&nbsp; Each user only sees their own memos</div>
+</div>
+
+<script>
+function show(s) {
+  document.querySelectorAll('.flow').forEach(f => f.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('f-' + s).classList.add('active');
+  document.querySelector('[data-s="' + s + '"]').classList.add('active');
+}
+
+function tog(el) {
+  el.classList.toggle('open');
+  const body = el.nextElementSibling;
+  body.classList.toggle('show');
+  el.querySelector('.toggle-arrow').style.transform = el.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+</script>
+</body>
+</html>
