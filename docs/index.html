@@ -1,0 +1,419 @@
+
+Copy
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serverless Memo – Live Flow</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080d18;--panel:#0f1829;--border:#1a2a40;
+  --orange:#ff9900;--teal:#00bcd4;--green:#00e676;
+  --purple:#ce93d8;--red:#ef5350;--yellow:#ffd54f;
+  --blue:#42a5f5;--muted:#2a3d55;--text:#dde8f5;--dim:#5a7a99;
+}
+body{background:var(--bg);font-family:'JetBrains Mono',monospace;color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px;}
+
+h1{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);margin-bottom:4px;}
+.sub{font-size:10px;color:var(--dim);letter-spacing:.1em;margin-bottom:28px;}
+
+/* ── SCENARIO BUTTONS ── */
+.scenarios{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:32px;}
+.btn{
+  padding:10px 18px;border-radius:8px;border:1.5px solid;
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;
+  cursor:pointer;background:var(--panel);transition:all .2s;letter-spacing:.04em;
+}
+.btn:hover{filter:brightness(1.3);}
+.btn.active{filter:brightness(1.4);}
+.btn-visit {border-color:var(--blue);color:var(--blue);}
+.btn-login {border-color:var(--purple);color:var(--purple);}
+.btn-create{border-color:var(--red);color:var(--red);}
+.btn-view  {border-color:var(--green);color:var(--green);}
+.btn.active.btn-visit {background:#0d1e38;}
+.btn.active.btn-login {background:#1a0d2a;}
+.btn.active.btn-create{background:#1a0d0d;}
+.btn.active.btn-view  {background:#0d1a0d;}
+
+/* ── MAIN LAYOUT ── */
+.stage{display:flex;gap:16px;align-items:flex-start;width:100%;max-width:1100px;}
+
+/* ── ARCHITECTURE MAP ── */
+.arch{flex:1;min-width:0;}
+.arch-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+
+.layer{border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--panel);position:relative;}
+.layer-title{font-size:8px;letter-spacing:.16em;text-transform:uppercase;margin-bottom:10px;opacity:.7;}
+
+.node{
+  border-radius:7px;padding:9px 12px;font-size:10px;font-weight:600;
+  text-align:center;position:relative;transition:all .3s;
+  border:1.5px solid var(--border);color:var(--dim);background:var(--bg);
+}
+.node .ntag{font-size:8px;opacity:.55;font-weight:400;display:block;margin-top:1px;}
+
+/* node highlight */
+.node.lit{
+  filter:brightness(1) !important;
+  box-shadow:0 0 18px var(--glow-color, #ffffff30);
+}
+.node.dim-node{opacity:.3;filter:brightness(.5);}
+
+/* arrow between nodes */
+.arr{display:flex;flex-direction:column;align-items:center;margin:3px 0;}
+.arr-line{width:1.5px;height:12px;background:var(--muted);}
+.arr-head{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid var(--muted);}
+.arr-lbl{font-size:8px;color:var(--dim);margin:1px 0;}
+.arr.lit .arr-line,.arr.lit .arr-head{background:var(--glow-color);border-top-color:var(--glow-color);}
+.arr.lit .arr-lbl{color:var(--glow-color);}
+.arr.dim-node{opacity:.2;}
+
+/* horizontal arrow */
+.harr{display:flex;align-items:center;margin:0 4px;}
+.harr-line{height:1.5px;width:20px;background:var(--muted);}
+.harr-head{width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid var(--muted);}
+.harr.lit .harr-line{background:var(--glow-color);}
+.harr.lit .harr-head{border-left-color:var(--glow-color);}
+
+/* api row horizontal */
+.api-row{display:flex;align-items:center;justify-content:center;gap:0;margin-top:4px;flex-wrap:wrap;}
+
+/* cicd row */
+.cicd-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:0;}
+
+/* ── LOG PANEL ── */
+.log-panel{
+  width:300px;flex-shrink:0;
+  border:1px solid var(--border);border-radius:10px;background:var(--panel);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.log-header{
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);
+  display:flex;align-items:center;gap:8px;
+}
+.log-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.log-body{flex:1;padding:12px;overflow-y:auto;max-height:520px;display:flex;flex-direction:column;gap:6px;}
+.log-entry{
+  padding:8px 10px;border-radius:6px;font-size:10px;line-height:1.5;
+  border-left:3px solid;opacity:0;transform:translateX(10px);
+  transition:opacity .3s,transform .3s;
+}
+.log-entry.show{opacity:1;transform:translateX(0);}
+.log-entry.info {border-color:var(--blue);background:#0d1e38;color:var(--blue);}
+.log-entry.auth {border-color:var(--purple);background:#160d22;color:var(--purple);}
+.log-entry.api  {border-color:var(--red);background:#1a0a0a;color:var(--red);}
+.log-entry.ok   {border-color:var(--green);background:#0a1a0a;color:var(--green);}
+.log-entry.cdn  {border-color:var(--orange);background:#1a1000;color:var(--orange);}
+.log-entry.sys  {border-color:var(--dim);background:#111;color:var(--dim);}
+
+.log-time{opacity:.5;margin-right:6px;}
+.scenario-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;padding:0 4px;}
+
+/* node color classes */
+.n-blue   {--glow-color:var(--blue);border-color:var(--blue) !important;color:var(--blue) !important;background:#0d1e38 !important;}
+.n-orange {--glow-color:var(--orange);border-color:var(--orange) !important;color:var(--orange) !important;background:#1a1000 !important;}
+.n-purple {--glow-color:var(--purple);border-color:var(--purple) !important;color:var(--purple) !important;background:#160d22 !important;}
+.n-red    {--glow-color:var(--red);border-color:var(--red) !important;color:var(--red) !important;background:#1a0a0a !important;}
+.n-green  {--glow-color:var(--green);border-color:var(--green) !important;color:var(--green) !important;background:#0a1a0a !important;}
+.n-yellow {--glow-color:var(--yellow);border-color:var(--yellow) !important;color:var(--yellow) !important;background:#1a1400 !important;}
+.n-teal   {--glow-color:var(--teal);border-color:var(--teal) !important;color:var(--teal) !important;background:#0a1a1e !important;}
+
+.reset-btn{
+  margin:16px auto 0;padding:8px 24px;border-radius:7px;border:1px solid var(--muted);
+  background:transparent;color:var(--dim);font-family:'JetBrains Mono',monospace;
+  font-size:10px;cursor:pointer;letter-spacing:.06em;
+}
+.reset-btn:hover{border-color:var(--text);color:var(--text);}
+</style>
+</head>
+<body>
+
+<h1>Serverless Memo</h1>
+<p class="sub">click a scenario to see what happens under the hood</p>
+
+<div class="scenarios">
+  <button class="btn btn-visit"  onclick="run('visit')">🌐 User Visits the App</button>
+  <button class="btn btn-login"  onclick="run('login')">🔐 User Logs In</button>
+  <button class="btn btn-create" onclick="run('create')">✏️ User Creates a Memo</button>
+  <button class="btn btn-view"   onclick="run('view')">📋 User Views Memos</button>
+</div>
+
+<div class="stage">
+  <!-- ARCH MAP -->
+  <div class="arch">
+
+    <!-- ROW 1: User | Frontend CDN | Auth -->
+    <div class="arch-grid">
+
+      <div class="layer">
+        <div class="layer-title" style="color:var(--blue)">👤 User</div>
+        <div class="node" id="n-user">User Browser<span class="ntag">memo.312ubuntu.com</span></div>
+        <div class="arr" id="a-user-dns">
+          <div class="arr-line"></div><div class="arr-lbl">DNS lookup</div><div class="arr-head"></div>
+        </div>
+        <div class="node" id="n-route53">Route 53<span class="ntag">DNS Resolution</span></div>
+        <div class="arr" id="a-dns-cf">
+          <div class="arr-line"></div><div class="arr-head"></div>
+        </div>
+        <div class="node" id="n-cf">CloudFront<span class="ntag">CDN / HTTPS</span></div>
+        <div class="arr" id="a-cf-s3">
+          <div class="arr-line"></div><div class="arr-lbl">fetch static</div><div class="arr-head"></div>
+        </div>
+        <div class="node" id="n-s3">S3 Bucket<span class="ntag">React build</span></div>
+      </div>
+
+      <div class="layer">
+        <div class="layer-title" style="color:var(--teal)">🖥️ App (in Browser)</div>
+        <div class="node" id="n-react">React App<span class="ntag">Vite · runs in browser</span></div>
+      </div>
+
+      <div class="layer">
+        <div class="layer-title" style="color:var(--purple)">🔐 Auth</div>
+        <div class="node" id="n-cognito">Amazon Cognito<span class="ntag">User Pool</span></div>
+        <div class="arr" id="a-cog-jwt">
+          <div class="arr-line"></div><div class="arr-lbl">issues</div><div class="arr-head"></div>
+        </div>
+        <div class="node" id="n-jwt">JWT Token<span class="ntag">stored in browser</span></div>
+      </div>
+    </div>
+
+    <!-- ROW 2: API flow full width -->
+    <div class="layer" style="margin-top:8px;">
+      <div class="layer-title" style="color:var(--red)">⚡ API Request Flow</div>
+      <div class="api-row">
+        <div class="node" id="n-react2" style="width:130px">React App<span class="ntag">+ JWT header</span></div>
+        <div class="harr" id="ha-react-apigw"><div class="harr-line"></div><div class="harr-head"></div></div>
+        <div class="node" id="n-apigw" style="width:140px">API Gateway<span class="ntag">HTTP API</span></div>
+        <div class="harr" id="ha-apigw-lambda"><div class="harr-line"></div><div class="harr-head"></div></div>
+        <div class="node" id="n-lambda" style="width:150px">Lambda<span class="ntag">Node.js container</span></div>
+        <div class="harr" id="ha-lambda-db"><div class="harr-line"></div><div class="harr-head"></div></div>
+        <div class="node" id="n-dynamo" style="width:140px">DynamoDB<span class="ntag">Memos Table</span></div>
+      </div>
+    </div>
+
+    <!-- ROW 3: CI/CD -->
+    <div class="layer" style="margin-top:8px;">
+      <div class="layer-title" style="color:var(--green)">⚙️ CI/CD (deployment)</div>
+      <div class="cicd-cols">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+          <div class="node" id="n-gh" style="width:100%">GitHub Actions<span class="ntag">on push</span></div>
+          <div class="arr" id="a-gh-oidc"><div class="arr-line"></div><div class="arr-lbl">OIDC</div><div class="arr-head"></div></div>
+          <div class="node" id="n-oidc" style="width:100%">AWS IAM Role<span class="ntag">no static keys</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+          <div class="node" id="n-docker" style="width:100%">Docker Image<span class="ntag">build</span></div>
+          <div class="arr" id="a-docker-ecr"><div class="arr-line"></div><div class="arr-head"></div></div>
+          <div class="node" id="n-ecr" style="width:100%">ECR<span class="ntag">push image</span></div>
+          <div class="arr" id="a-ecr-tf"><div class="arr-line"></div><div class="arr-head"></div></div>
+          <div class="node" id="n-tf" style="width:100%">Terraform<span class="ntag">update Lambda</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+          <div class="node" id="n-build" style="width:100%">vite build<span class="ntag">React bundle</span></div>
+          <div class="arr" id="a-build-s3u"><div class="arr-line"></div><div class="arr-head"></div></div>
+          <div class="node" id="n-s3u" style="width:100%">Upload to S3</div>
+          <div class="arr" id="a-s3u-inv"><div class="arr-line"></div><div class="arr-head"></div></div>
+          <div class="node" id="n-inv" style="width:100%">CF Invalidation<span class="ntag">purge cache</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- LOG PANEL -->
+  <div class="log-panel">
+    <div class="log-header">
+      <div class="log-dot"></div>
+      Live Event Log
+    </div>
+    <div class="log-body" id="log-body">
+      <div style="color:var(--dim);font-size:10px;padding:8px;text-align:center;margin-top:40px">
+        ← Select a scenario<br>to see the flow
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="reset-btn" onclick="resetAll()">↺ Reset</button>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// All node and arrow IDs
+const ALL_NODES = [
+  'n-user','n-route53','n-cf','n-s3','n-react','n-cognito','n-jwt',
+  'n-react2','n-apigw','n-lambda','n-dynamo',
+  'n-gh','n-oidc','n-docker','n-ecr','n-tf','n-build','n-s3u','n-inv'
+];
+const ALL_ARROWS = [
+  'a-user-dns','a-dns-cf','a-cf-s3','a-cog-jwt',
+  'ha-react-apigw','ha-apigw-lambda','ha-lambda-db',
+  'a-gh-oidc','a-docker-ecr','a-ecr-tf','a-build-s3u','a-s3u-inv'
+];
+
+let animTimer = [];
+
+function resetAll(){
+  animTimer.forEach(t=>clearTimeout(t));
+  animTimer=[];
+  ALL_NODES.forEach(id=>{
+    const el=$(id);
+    el.className='node';
+  });
+  ALL_ARROWS.forEach(id=>{
+    const el=$(id);
+    if(el){el.classList.remove('lit','dim-node');}
+  });
+  document.querySelectorAll('.btn').forEach(b=>b.classList.remove('active'));
+  $('log-body').innerHTML='<div style="color:var(--dim);font-size:10px;padding:8px;text-align:center;margin-top:40px">← Select a scenario<br>to see the flow</div>';
+}
+
+function addLog(type,text,delay){
+  animTimer.push(setTimeout(()=>{
+    const now=new Date();
+    const t=now.toTimeString().slice(0,8);
+    const lb=$('log-body');
+    // remove placeholder
+    const ph=lb.querySelector('div[style]');
+    if(ph&&ph.style.textAlign==='center')ph.remove();
+    const e=document.createElement('div');
+    e.className=`log-entry ${type}`;
+    e.innerHTML=`<span class="log-time">${t}</span>${text}`;
+    lb.appendChild(e);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>e.classList.add('show')));
+    lb.scrollTop=lb.scrollHeight;
+  },delay));
+}
+
+function light(id,colorClass,delay){
+  animTimer.push(setTimeout(()=>{
+    const el=$(id);
+    if(!el)return;
+    el.className='node lit '+colorClass;
+  },delay));
+}
+function lightArr(id,colorVar,delay){
+  animTimer.push(setTimeout(()=>{
+    const el=$(id);
+    if(!el)return;
+    el.classList.add('lit');
+    el.style.setProperty('--glow-color',colorVar);
+    // also set child elements color
+    el.querySelectorAll('.arr-line,.harr-line').forEach(c=>c.style.background=colorVar);
+    el.querySelectorAll('.arr-head').forEach(c=>c.style.borderTopColor=colorVar);
+    el.querySelectorAll('.harr-head').forEach(c=>c.style.borderLeftColor=colorVar);
+    el.querySelectorAll('.arr-lbl').forEach(c=>c.style.color=colorVar);
+  },delay));
+}
+
+const T=500; // base delay step
+
+const SCENARIOS = {
+  visit:{
+    label:'🌐 User Visits the App',
+    btnClass:'btn-visit',
+    run(){
+      addLog('sys','Scenario: User opens memo.312ubuntu.com',0);
+      light('n-user','n-blue',T*0);
+      addLog('info','Browser resolves DNS via Route 53',T*0.8);
+      light('n-route53','n-orange',T*1);
+      lightArr('a-user-dns','var(--orange)',T*1);
+      addLog('cdn','Route 53 → CloudFront distribution',T*1.8);
+      light('n-cf','n-orange',T*2);
+      lightArr('a-dns-cf','var(--orange)',T*2);
+      addLog('cdn','CloudFront checks edge cache...',T*2.8);
+      addLog('cdn','Cache MISS → fetching from S3',T*3.4);
+      light('n-s3','n-orange',T*4);
+      lightArr('a-cf-s3','var(--orange)',T*4);
+      addLog('cdn','S3 returns React build (HTML/JS/CSS)',T*4.8);
+      addLog('ok','CloudFront caches & delivers to browser',T*5.6);
+      light('n-react','n-teal',T*6);
+      addLog('ok','✓ React app loaded! App is running in browser.',T*6.8);
+    }
+  },
+  login:{
+    label:'🔐 User Logs In',
+    btnClass:'btn-login',
+    run(){
+      addLog('sys','Scenario: User submits login form',0);
+      light('n-react','n-teal',T*0);
+      addLog('auth','React sends credentials to Cognito',T*0.8);
+      light('n-cognito','n-purple',T*1);
+      addLog('auth','Cognito validates email + password',T*1.8);
+      addLog('auth','Cognito User Pool: user found ✓',T*2.6);
+      lightArr('a-cog-jwt','var(--purple)',T*3);
+      addLog('auth','Cognito issues JWT token (id + access)',T*3.4);
+      light('n-jwt','n-purple',T*4);
+      addLog('ok','JWT stored in browser memory',T*4.8);
+      addLog('ok','✓ User is authenticated! All API requests will now include JWT in Authorization header.',T*5.6);
+    }
+  },
+  create:{
+    label:'✏️ User Creates a Memo',
+    btnClass:'btn-create',
+    run(){
+      addLog('sys','Scenario: User types a memo and clicks Save',0);
+      light('n-react','n-teal',T*0);
+      light('n-react2','n-teal',T*0);
+      addLog('api','React → POST /memos',T*0.8);
+      addLog('api','Request headers: Authorization: Bearer <JWT>',T*1.4);
+      lightArr('ha-react-apigw','var(--red)',T*2);
+      light('n-apigw','n-red',T*2);
+      addLog('api','API Gateway receives request',T*2.8);
+      addLog('api','Validates JWT via Cognito authorizer',T*3.4);
+      addLog('api','JWT valid ✓ → forwarding to Lambda',T*4.0);
+      lightArr('ha-apigw-lambda','var(--red)',T*4.5);
+      light('n-lambda','n-red',T*4.5);
+      addLog('api','Lambda (Node.js) invoked — cold start ~200ms',T*5.2);
+      addLog('api','Express handler: POST /memos',T*5.8);
+      addLog('api','Calling DynamoDB.putItem()',T*6.4);
+      lightArr('ha-lambda-db','var(--red)',T*7);
+      light('n-dynamo','n-red',T*7);
+      addLog('api','DynamoDB writes memo to Memos Table',T*7.8);
+      addLog('ok','DynamoDB → 200 OK',T*8.4);
+      addLog('ok','Lambda → 201 Created → React',T*9.0);
+      addLog('ok','✓ Memo saved! UI updates instantly.',T*9.8);
+    }
+  },
+  view:{
+    label:'📋 User Views Memos',
+    btnClass:'btn-view',
+    run(){
+      addLog('sys','Scenario: User opens the memo list',0);
+      light('n-react','n-teal',T*0);
+      light('n-react2','n-teal',T*0);
+      addLog('api','React → GET /memos',T*0.8);
+      addLog('api','Request headers: Authorization: Bearer <JWT>',T*1.4);
+      lightArr('ha-react-apigw','var(--green)',T*2);
+      light('n-apigw','n-green',T*2);
+      addLog('api','API Gateway validates JWT ✓',T*2.8);
+      lightArr('ha-apigw-lambda','var(--green)',T*3.4);
+      light('n-lambda','n-green',T*3.4);
+      addLog('api','Lambda invoked → GET /memos handler',T*4.2);
+      addLog('api','Calling DynamoDB.query() by userId',T*4.8);
+      lightArr('ha-lambda-db','var(--green)',T*5.4);
+      light('n-dynamo','n-green',T*5.4);
+      addLog('api','DynamoDB scans Memos Table for user',T*6.2);
+      addLog('api','Found 5 memos → serializing to JSON',T*6.8);
+      addLog('ok','Lambda → 200 OK + memo array',T*7.6);
+      addLog('ok','React renders memo list',T*8.2);
+      addLog('ok','✓ Memos displayed! User sees all their notes.',T*9.0);
+    }
+  }
+};
+
+function run(key){
+  resetAll();
+  const s=SCENARIOS[key];
+  document.querySelector('.'+s.btnClass).classList.add('active');
+  s.run();
+}
+</script>
+</body>
+</html>
